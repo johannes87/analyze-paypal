@@ -22,9 +22,9 @@ def list_mailboxes(M):
 
     print('Listing available mailboxes:')
     for line in mailbox_list:
-        flags, delimiter, mailbox_name = parse_list_response(line)
+        _, _, mailbox_name = parse_list_response(line)
         print(
-            f'Mailbox: "{mailbox_name}", Flags: "{flags}", Delimiter: "{delimiter}"')
+            f'• Mailbox: "{mailbox_name}"')
     print()
 
 
