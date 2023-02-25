@@ -31,8 +31,9 @@ def list_mailboxes(M):
 def main():
     load_dotenv()
 
-    # surround with doublequotes to allow special characters and spaces in mailbox name
+    # surround with doublequotes to allow spaces in mailbox name
     mailbox = '"' + os.environ['MAILBOX'] + '"'
+    paypal_from = os.environ['PAYPAL_FROM']
 
     with IMAP4_SSL(os.environ['IMAP_SERVER']) as M:
         M.login(os.environ['USERNAME'], os.environ['PASSWORD'])
@@ -50,15 +51,25 @@ def main():
                 print(f'Mailbox select failed: {typ}')
 
             if typ == 'OK':
-                messages_found_count = 0
-                typ, data = M.search(None, 'FROM', 'service@paypal.de')
-                for num in data[0].split():
-                    # typ, data = M.fetch(num, '(RFC822)')
-                    # print('Message %s\n%s\n' % (num, data[0][1]))
-                    messages_found_count += 1
+                messages_processed_count = 0
+                typ, data = M.search(None, 'FROM', paypal_from)
+
+                matching_messages = data[0].split()
+                matching_messages_count = len(matching_messages)
+
+                print(
+                    f'\nFound {matching_messages_count} messages with sender "{paypal_from}"\n')
+
+                for num in matching_messages:
+                    messages_processed_count += 1
                     message_no = num.decode('utf-8')
+
                     print(
-                        f'Message {message_no}, found {messages_found_count} messages so far')
+                        f'Message {message_no}, processed {messages_processed_count} messages so far (of {matching_messages_count})')
+
+                    typ, data = M.fetch(num, '(RFC822)')
+                    # print('Message %s\n%s\n' % (num, data[0][1]))
+                    # pp.pprint(data)
         except IMAP4.error as e:
             print('IMAP command failed:', e)
 
