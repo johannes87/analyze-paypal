@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 from imaplib import IMAP4_SSL, IMAP4
+import email
+import email.policy
 import pprint
 import re
 from dotenv import load_dotenv
 import os
 
 pp = pprint.PrettyPrinter(indent=4)
+
+paypal_payment_patterns = [
+    re.compile(
+        r'.*Sie haben eine Zahlung über (?P<money_amount>.*) an (?P<money_recipient>.*) gesendet.*'),
+    re.compile(r'Bestätigung Ihrer Spende über (?P<money_amount>.*) an (?P<money_recipient>.*) mit PayPal')]
 
 
 def list_mailboxes(M):
@@ -18,60 +25,109 @@ def list_mailboxes(M):
         mailbox_name = mailbox_name.strip('"')
         return (flags, delimiter, mailbox_name)
 
-    typ, mailbox_list = M.list()
+    try:
+        typ, mailbox_list = M.list()
+        if typ == 'OK':
+            print('Listing available mailboxes:')
+            for line in mailbox_list:
+                _, _, mailbox_name = parse_list_response(line)
+                print(
+                    f'• Mailbox: "{mailbox_name}"')
+            print()
+        else:
+            print(f'Could not list mailboxes: {typ}')
+    except IMAP4.error as e:
+        print(f'Could not list mailboxes: {e}')
 
-    print('Listing available mailboxes:')
-    for line in mailbox_list:
-        _, _, mailbox_name = parse_list_response(line)
+
+def select_mailbox(M, mailbox) -> bool:
+    result = False
+    try:
+        typ, data = M.select(mailbox)
+        if typ == 'OK':
+            mailbox_message_count = data[0].decode('utf-8')
+            print(
+                f'Mailbox select response: {typ}, {mailbox_message_count} messages reported')
+            result = True
+        else:
+            print(f'Could not select mailbox: {typ}')
+    except IMAP4.error as e:
+        print(f'Could not select mailbox: {e}')
+    return result
+
+
+def fetch_paypal_mails(M, paypal_from, mail_handler):
+    messages_processed_count = 0
+
+    try:
+        typ, data = M.search(None, 'FROM', paypal_from)
+        matching_messages = data[0].split()
+        matching_messages_count = len(matching_messages)
+
         print(
-            f'• Mailbox: "{mailbox_name}"')
+            f'\nFound {matching_messages_count} messages with sender "{paypal_from}"\n')
+
+        for num in matching_messages:
+            messages_processed_count += 1
+            message_no = num.decode('utf-8')
+            try:
+                typ, data = M.fetch(num, '(RFC822)')
+                if typ == 'OK':
+                    mail = email.message_from_bytes(
+                        data[0][1], policy=email.policy.default)
+                    mail_handler(mail)
+                    print(
+                        f'IMAP message {message_no}, processed {messages_processed_count} messages so far (of {matching_messages_count})')
+                else:
+                    print(
+                        f'Could not fetch email, IMAP message {message_no}: {typ}')
+            except IMAP4.error as e:
+                print(f'Could not fetch email, IMAP message {message_no}: {e}')
+    except IMAP4.error as e:
+        print(f'Could not search for emails from "{paypal_from}": {e}')
+
+
+def process_paypal_mail(mail):
+    print('Subject:', mail['subject'])
+    print('Date:', mail['date'])
     print()
+
+    mail_body = mail.get_body(('plain'))
+
+    if mail_body:
+        mail_content = mail_body.get_content()
+
+        found_payment = False
+
+        for payment_pattern in paypal_payment_patterns:
+            payment_pattern_match = payment_pattern.search(mail_content)
+            if payment_pattern_match:
+                money_amount, money_recipient = payment_pattern_match.groups()
+                print((money_amount, money_recipient))
+                print()
+                found_payment = True
+                break
+
+        if not found_payment:
+            print('No payment information found in the following email:')
+            print(mail_content)
+    else:
+        print('No plaintext found in the following email:')
+        print(mail)
 
 
 def main():
     load_dotenv()
 
-    # surround with doublequotes to allow spaces in mailbox name
-    mailbox = '"' + os.environ['MAILBOX'] + '"'
-    paypal_from = os.environ['PAYPAL_FROM']
-
     with IMAP4_SSL(os.environ['IMAP_SERVER']) as M:
         M.login(os.environ['USERNAME'], os.environ['PASSWORD'])
-
         list_mailboxes(M)
 
-        try:
-            typ, data = M.select(mailbox)
-
-            if typ == 'OK':
-                mailbox_message_count = data[0].decode('utf-8')
-                print(
-                    f'Mailbox select response: {typ}, {mailbox_message_count} messages reported')
-            else:
-                print(f'Mailbox select failed: {typ}')
-
-            if typ == 'OK':
-                messages_processed_count = 0
-                typ, data = M.search(None, 'FROM', paypal_from)
-
-                matching_messages = data[0].split()
-                matching_messages_count = len(matching_messages)
-
-                print(
-                    f'\nFound {matching_messages_count} messages with sender "{paypal_from}"\n')
-
-                for num in matching_messages:
-                    messages_processed_count += 1
-                    message_no = num.decode('utf-8')
-
-                    print(
-                        f'Message {message_no}, processed {messages_processed_count} messages so far (of {matching_messages_count})')
-
-                    typ, data = M.fetch(num, '(RFC822)')
-                    # print('Message %s\n%s\n' % (num, data[0][1]))
-                    # pp.pprint(data)
-        except IMAP4.error as e:
-            print('IMAP command failed:', e)
+        # surround with doublequotes to allow spaces in mailbox name
+        mailbox = '"' + os.environ['MAILBOX'] + '"'
+        if select_mailbox(M, mailbox):
+            fetch_paypal_mails(
+                M, os.environ['PAYPAL_FROM'], process_paypal_mail)
 
 
 if __name__ == '__main__':
