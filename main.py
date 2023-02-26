@@ -5,12 +5,35 @@ import email.policy
 import re
 from dotenv import load_dotenv
 import os
+from bs4 import BeautifulSoup
 
 
 paypal_payment_patterns = [
     re.compile(
-        r'.*Sie haben eine Zahlung über (?P<money_amount>.*) an (?P<money_recipient>.*) gesendet.*'),
-    re.compile(r'Bestätigung Ihrer Spende über (?P<money_amount>.*) an (?P<money_recipient>.*) mit PayPal')]
+        r'.*Sie haben eine Zahlung über (?P<money_amount>.+?) an (?P<money_recipient>.+?) gesendet.*'),
+    re.compile(
+        r'Bestätigung Ihrer Spende über (?P<money_amount>.+?) an (?P<money_recipient>.+?) mit PayPal'),
+    re.compile(
+        r'eine Zahlung über (?P<money_amount>.+?) an (?P<money_recipient>.+?) gesendet.'),
+    re.compile(
+        r'Sie haben eine Handyzahlung über (?P<money_amount>.+?) EUR an (?P<money_recipient>.+?) gesendet'),
+    re.compile(
+        r'Diese E-Mail bestätigt Ihre Zahlung an (?P<money_recipient>.+?) €(?P<money_amount>.+?) über PayPal'),
+    re.compile(
+        r'Sie haben eine Zahlung über (?P<money_amount>.+?) an (?P<money_recipient>.+?) autorisiert'),
+    re.compile(
+        r'Sie haben (?P<money_amount>.+?) an (?P<money_recipient>.+?) gesendet'),
+    re.compile(
+        r'Sie haben (?P<money_amount>.+?) an (?P<money_recipient>.+?) gespendet'),
+    re.compile(
+        r'Sie haben eine Zahlung über (?P<money_amount>.+?) an (?P<money_recipient>.+?)\s+genehmigt'),
+    re.compile(
+        r'Sie haben (?P<money_amount>.+?) gespendet an (?P<money_recipient>.+?)\s+'),
+    re.compile(
+        r'Sie haben eine Bestellung über (?P<money_amount>.+?) an (?P<money_recipient>.+?) übermittelt'),
+    re.compile(
+        r'Diese E-Mail bestätigt, dass Sie (?P<money_amount>.+?) an (?P<money_recipient>.+?) mit PayPal bezahlt haben')
+]
 
 
 def list_mailboxes(M):
@@ -90,10 +113,11 @@ def process_paypal_mail(mail):
     print('Date:', mail['date'])
     print()
 
-    mail_body = mail.get_body(('plain'))
+    mail_body = mail.get_body(preferencelist=('html', 'plain'))
 
     if mail_body:
-        mail_content = mail_body.get_content()
+        mail_content = BeautifulSoup(
+            mail_body.get_content(), "html5lib").get_text()
 
         found_payment = False
 
@@ -110,7 +134,7 @@ def process_paypal_mail(mail):
             print('No payment information found in the following email:')
             print(mail_content)
     else:
-        print('No plaintext found in the following email:')
+        print('No HTML or plaintext content found in the following email:')
         print(mail)
 
 
