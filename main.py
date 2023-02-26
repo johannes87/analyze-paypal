@@ -2,12 +2,10 @@
 from imaplib import IMAP4_SSL, IMAP4
 import email
 import email.policy
-import pprint
 import re
 from dotenv import load_dotenv
 import os
 
-pp = pprint.PrettyPrinter(indent=4)
 
 paypal_payment_patterns = [
     re.compile(
