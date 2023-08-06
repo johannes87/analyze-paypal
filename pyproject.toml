@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "analyze-paypal"
 version = "0.1.0"
-description = "Analyse money spent with PayPal by parsing PayPal emails"
+description = "Analyze money spent with PayPal by parsing PayPal emails"
 authors = ["Johannes Bittner <johannes.bittner@gmail.com>"]
 license = "MIT"
 
