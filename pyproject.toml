@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "analyze-paypal"
+version = "0.1.0"
+description = "Analyse money spent with PayPal by parsing PayPal emails"
+authors = ["Johannes Bittner <johannes.bittner@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+python-dotenv = "^1.0.0"
+beautifulsoup4 = "^4.12.2"
+html5lib = "^1.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
