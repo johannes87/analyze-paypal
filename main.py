@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from dotenv import load_dotenv
-import os
 import sys
 from analyze_paypal.analyze_mails import AnalyzeMails
 from analyze_paypal.configuration import Configuration
@@ -15,7 +14,8 @@ def main():
     # mails_container.export_mails("mails.pickle")
     mails_container.import_mails("mails.pickle")
     analyze_mails = AnalyzeMails(mails_container)
-    analyze_mails.analyze(r'.*Sie haben eine Zahlung über €(.*).EUR an Wolt Enterprises Deutschland GmbH autorisiert.*')
+    analyze_mails.analyze(
+        r'.*Sie haben eine Zahlung über €(.*).EUR an Wolt Enterprises Deutschland GmbH autorisiert.*')
     sys.exit(1)
 
 

@@ -1,8 +1,7 @@
 
 import email
-from imaplib import IMAP4_SSL, IMAP4
+from imaplib import IMAP4_SSL
 import pickle
-from analyze_paypal import configuration
 from analyze_paypal.configuration import Configuration
 from analyze_paypal.exceptions import FetchMailsException
 
