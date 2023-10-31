@@ -9,7 +9,9 @@ class AnalyzeMails:
         self.mails_container = mails_container
 
     def analyze(self, pattern):
+        # process newest mails first (quicker feedback for user)
         self.mails_container.mails.reverse()
+
         money_sum = 0
         for mail in self.mails_container.mails:
             mail_body = mail.get_body(preferencelist=('html', 'plain'))
