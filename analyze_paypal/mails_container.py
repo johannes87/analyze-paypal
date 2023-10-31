@@ -1,5 +1,6 @@
 
 import email
+import email.policy
 from imaplib import IMAP4_SSL
 import pickle
 from analyze_paypal.configuration import Configuration
