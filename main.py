@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-from dotenv import load_dotenv
-import sys
 from analyze_paypal.analyze_mails import AnalyzeMails
 from analyze_paypal.configuration import Configuration
 from analyze_paypal.mails_container import MailsContainer

@@ -7,7 +7,6 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-python-dotenv = "^1.0.0"
 beautifulsoup4 = "^4.12.2"
 html5lib = "^1.1"
 
